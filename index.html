@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Parkinson Rehabilitasyon Oyunları</title>
+<style>
+  :root{
+    --bg:#0d1226; --bg2:#161d3d; --card:#1b2450; --accent:#4fd1c5; --accent2:#f6ad55;
+    --good:#48bb78; --bad:#f56565; --txt:#eef2ff; --muted:#9aa6d6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
+  #app{position:fixed;inset:0;}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow-y:auto;
+    padding:20px;background:radial-gradient(circle at 50% 0%,var(--bg2),var(--bg));}
+  .screen.active{display:flex;}
+  h1{font-size:24px;margin:8px 0 4px;text-align:center;}
+  h2{font-size:19px;margin:6px 0;}
+  p.sub{color:var(--muted);text-align:center;margin:0 0 16px;font-size:14px;line-height:1.4;}
+  .big-choice{display:flex;flex-direction:column;gap:16px;max-width:520px;margin:12px auto;width:100%;}
+  .choice{background:var(--card);border:2px solid transparent;border-radius:18px;padding:22px;
+    display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s;}
+  .choice:active{transform:scale(.98);}
+  .choice:hover{border-color:var(--accent);}
+  .choice .ico{font-size:42px;}
+  .choice .t{font-size:20px;font-weight:700;}
+  .choice .d{color:var(--muted);font-size:13px;margin-top:3px;line-height:1.35;}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px;max-width:560px;margin:0 auto;width:100%;}
+  @media(min-width:520px){.grid{grid-template-columns:1fr 1fr;}}
+  .gcard{background:var(--card);border-radius:16px;padding:16px;cursor:pointer;transition:.15s;border:2px solid transparent;}
+  .gcard:active{transform:scale(.98);} .gcard:hover{border-color:var(--accent);}
+  .gcard .gt{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;}
+  .gcard .gd{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.4;}
+  .tag{display:inline-block;font-size:10.5px;background:#2a336a;color:var(--accent);
+    padding:2px 8px;border-radius:20px;margin-top:8px;}
+  .btn{background:var(--accent);color:#04241f;border:none;border-radius:12px;padding:14px 20px;
+    font-size:16px;font-weight:700;cursor:pointer;}
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:transparent;color:var(--txt);border:2px solid #33407d;}
+  .btn.wide{width:100%;max-width:520px;margin:8px auto;display:block;}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .topbar .back{background:#222c5e;border:none;color:var(--txt);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer;}
+  .footer-note{color:var(--muted);font-size:11.5px;text-align:center;margin-top:18px;line-height:1.5;max-width:520px;margin-left:auto;margin-right:auto;}
+  /* Game screen */
+  #gameScreen{padding:0;background:#05070f;}
+  #stage{position:absolute;inset:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:center;padding:10px 14px;pointer-events:none;font-weight:700;
+    text-shadow:0 1px 4px #000;font-size:15px;z-index:5;}
+  #hud .exit{pointer-events:auto;background:rgba(20,26,60,.75);border:none;color:#fff;
+    border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer;}
+  #banner{position:absolute;left:0;right:0;top:46%;text-align:center;font-size:20px;font-weight:800;
+    text-shadow:0 2px 8px #000;z-index:6;pointer-events:none;padding:0 20px;line-height:1.4;}
+  #overlay{position:absolute;inset:0;background:rgba(5,7,15,.92);z-index:20;display:none;
+    flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px;}
+  #overlay.active{display:flex;}
+  #overlay h2{font-size:22px;} #overlay p{color:var(--muted);max-width:420px;line-height:1.5;font-size:14px;}
+  video{display:none;}
+  .pill{background:#222c5e;color:var(--accent);border-radius:20px;padding:6px 14px;font-size:12px;margin:4px;display:inline-block;}
+  .warn{background:#3a2a10;color:var(--accent2);border-radius:12px;padding:12px 14px;font-size:13px;
+    line-height:1.5;max-width:520px;margin:10px auto;text-align:left;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <h1>🧠 Parkinson Rehabilitasyon Oyunları</h1>
+    <p class="sub">Denge, motor kontrol, yüz mimikleri ve motor-bilişsel çift görev için sensör tabanlı egzersiz oyunları.<br>Nasıl oynayacaksınız?</p>
+    <div class="big-choice">
+      <div class="choice" onclick="chooseMode('phone')">
+        <div class="ico">📱</div>
+        <div><div class="t">Telefon ile</div>
+        <div class="d">Jiroskop ve ön kamera kullanılır. Telefonu elinizde tutarak oynanır. 5 oyun.</div></div>
+      </div>
+      <div class="choice" onclick="chooseMode('vr')">
+        <div class="ico">🥽</div>
+        <div><div class="t">VR Box + Telefon</div>
+        <div class="d">Telefonu VR gözlüğe (cardboard) yerleştirin. Baş hareketiyle oynanır, çift ekran 3B. 5 oyun.</div></div>
+      </div>
+    </div>
+    <div class="warn">⚠️ <b>Güvenlik:</b> VR oyunlarını oturarak veya tutunacak bir destekle, bir yakınınızın gözetiminde oynayın. Baş dönmesi olursa durun. Bu bir tıbbi cihaz değildir; egzersiz programınız için doktorunuza/fizyoterapistinize danışın.</div>
+    <p class="footer-note">Kaynak ilham: Dockx ve ark., "Virtual reality for rehabilitation in Parkinson's disease", Cochrane Database of Systematic Reviews 2016.</p>
+  </section>
+
+  <!-- MENU -->
+  <section id="menu" class="screen">
+    <div class="topbar"><button class="back" onclick="showHome()">‹ Geri</button>
+      <h2 id="menuTitle" style="margin:0;">Oyunlar</h2></div>
+    <p class="sub" id="menuSub"></p>
+    <div class="grid" id="gameGrid"></div>
+    <div class="footer-note">Her oyunda yön/hedef görsel geri bildirimlidir. Zorluk kademeli olarak ayarlanır; yorulunca ara verin.</div>
+  </section>
+
+  <!-- GAME -->
+  <section id="gameScreen" class="screen">
+    <div id="stage"><canvas id="cv"></canvas></div>
+    <div id="hud">
+      <span id="hudLeft"></span>
+      <button class="exit" onclick="stopGame()">✕ Çıkış</button>
+    </div>
+    <div id="banner"></div>
+    <div id="overlay">
+      <h2 id="ovTitle"></h2>
+      <p id="ovText"></p>
+      <div id="ovPills" style="margin:10px 0;"></div>
+      <button class="btn" id="ovBtn" style="margin-top:14px;">Başla</button>
+      <button class="btn ghost" style="margin-top:10px;" onclick="stopGame()">Menüye dön</button>
+    </div>
+    <video id="cam" playsinline autoplay muted></video>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   PARKINSON REHAB GAMES — tek dosya
+   Sensörler: DeviceOrientation (jiroskop), getUserMedia (kamera/mikrofon)
+   ============================================================ */
+const $=s=>document.querySelector(s);
+const cv=$('#cv'), ctx=cv.getContext('2d');
+const cam=$('#cam');
+let DPR=Math.min(window.devicePixelRatio||1,2);
+let W=0,H=0;
+function resize(){
+  W=cv.clientWidth; H=cv.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+
+/* -------- Screen management -------- */
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('#'+id).classList.add('active');}
+function showHome(){stopGame();show('home');}
+let MODE='phone';
+
+/* -------- Orientation (gyroscope) -------- */
+const orient={alpha:0,beta:0,gamma:0,baseAlpha:0,baseBeta:0,baseGamma:0,ok:false};
+function onOrient(e){
+  if(e.alpha==null&&e.beta==null&&e.gamma==null)return;
+  orient.alpha=e.alpha||0; orient.beta=e.beta||0; orient.gamma=e.gamma||0; orient.ok=true;
+}
+function recenter(){orient.baseAlpha=orient.alpha;orient.baseBeta=orient.beta;orient.baseGamma=orient.gamma;}
+// yaw/pitch relative to recenter, in degrees
+function yaw(){let d=orient.alpha-orient.baseAlpha;while(d>180)d-=360;while(d<-180)d+=360;return d;}
+function pitch(){return orient.beta-orient.baseBeta;}
+function roll(){return orient.gamma-orient.baseGamma;}
+
+async function requestSensors(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r==='granted') window.addEventListener('deviceorientation',onOrient,true);
+    } else {
+      window.addEventListener('deviceorientation',onOrient,true);
+    }
+  }catch(err){ window.addEventListener('deviceorientation',onOrient,true); }
+}
+
+/* -------- Camera / Mic -------- */
+let camStream=null, audioAnalyser=null, audioData=null;
+async function startCamera(withAudio){
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:!!withAudio});
+    cam.srcObject=camStream; await cam.play().catch(()=>{});
+    if(withAudio){
+      const AC=window.AudioContext||window.webkitAudioContext;
+      const ac=new AC(); const src=ac.createMediaStreamSource(camStream);
+      audioAnalyser=ac.createAnalyser(); audioAnalyser.fftSize=512;
+      audioData=new Uint8Array(audioAnalyser.frequencyBinCount); src.connect(audioAnalyser);
+    }
+    return true;
+  }catch(err){return false;}
+}
+function stopCamera(){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  audioAnalyser=null;audioData=null;
+}
+function micLevel(){ // 0..1
+  if(!audioAnalyser)return 0;
+  audioAnalyser.getByteFrequencyData(audioData);
+  let s=0;for(let i=0;i<audioData.length;i++)s+=audioData[i];
+  return Math.min(1,(s/audioData.length)/90);
+}
+// Draw mirrored camera into an offscreen buffer & compute frame motion
+let motionBuf=null,prevFrame=null;
+function cameraMotion(){ // returns {level:0..1}
+  if(!camStream||cam.videoWidth===0)return {level:0};
+  const w=64,h=48;
+  if(!motionBuf){motionBuf=document.createElement('canvas');motionBuf.width=w;motionBuf.height=h;}
+  const mc=motionBuf.getContext('2d');
+  mc.save();mc.scale(-1,1);mc.drawImage(cam,-w,0,w,h);mc.restore();
+  const cur=mc.getImageData(0,0,w,h).data;
+  let level=0;
+  if(prevFrame){
+    let diff=0;
+    for(let i=0;i<cur.length;i+=4){ diff+=Math.abs(cur[i]-prevFrame[i]); }
+    level=Math.min(1,(diff/(w*h))/28);
+  }
+  prevFrame=cur;
+  return {level};
+}
+function drawCameraMirror(x,y,w,h,radius){
+  if(!camStream||cam.videoWidth===0)return;
+  ctx.save();
+  if(radius){roundRect(x,y,w,h,radius);ctx.clip();}
+  ctx.translate(x+w,y);ctx.scale(-1,1);
+  const vr=cam.videoWidth/cam.videoHeight, tr=w/h; let dw=w,dh=h,dx=0,dy=0;
+  if(vr>tr){dw=h*vr;dx=-(dw-w)/2;}else{dh=w/vr;dy=-(dh-h)/2;}
+  ctx.drawImage(cam,dx,dy,dw,dh);
+  ctx.restore();
+}
+
+/* -------- helpers -------- */
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function pick(a){return a[(Math.random()*a.length)|0];}
+function normDeg(d){while(d>180)d-=360;while(d<-180)d+=360;return d;}
+function setHud(t){$('#hudLeft').innerHTML=t;}
+function banner(t){$('#banner').innerHTML=t;}
+
+/* -------- Game engine -------- */
+let raf=null, activeGame=null, lastT=0;
+function loop(t){
+  const dt=Math.min(0.05,(t-lastT)/1000||0); lastT=t;
+  ctx.clearRect(0,0,W,H);
+  if(activeGame&&activeGame.update)activeGame.update(dt);
+  raf=requestAnimationFrame(loop);
+}
+function stopGame(){
+  if(raf)cancelAnimationFrame(raf); raf=null;
+  if(activeGame&&activeGame.cleanup)activeGame.cleanup();
+  activeGame=null; stopCamera();
+  banner(''); setHud(''); $('#overlay').classList.remove('active');
+  show('menu');
+}
+function launch(def){
+  show('gameScreen'); resize(); banner(''); setHud('');
+  activeGame=null;
+  const ov=$('#overlay');
+  $('#ovTitle').textContent=def.title;
+  $('#ovText').innerHTML=def.help;
+  $('#ovPills').innerHTML=(def.pills||[]).map(p=>`<span class="pill">${p}</span>`).join('');
+  ov.classList.add('active');
+  $('#ovBtn').onclick=async()=>{
+    $('#ovBtn').textContent='Yükleniyor…';
+    await requestSensors();
+    recenter();
+    if(def.needCamera){ const ok=await startCamera(def.needAudio);
+      if(!ok){ $('#ovText').innerHTML='Kamera/mikrofon izni gerekli. Lütfen izin verin ve tekrar deneyin.'; $('#ovBtn').textContent='Tekrar dene'; return; } }
+    ov.classList.remove('active');
+    def.init();
+    activeGame=def; lastT=performance.now();
+    if(!raf)raf=requestAnimationFrame(loop);
+  };
+  $('#ovBtn').textContent='Başla';
+}
+
+/* -------- Tap input for phone games -------- */
+let tapped=false, tapX=0, tapY=0;
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();tapX=e.clientX-r.left;tapY=e.clientY-r.top;tapped=true;});
+
+/* ============================================================
+   STEREO VR RENDERER (cardboard) — gaze/dwell etkileşimi
+   Sahne nesneleri: {az, el, r, color, label, ...}  az=yaw°, el=pitch°
+   ============================================================ */
+const FOVH=45, FOVV=38; // yarı görüş açıları
+function project(objAz,objEl,cx,cy,halfW,halfH){
+  const dAz=normDeg(objAz - yaw());
+  const dEl=objEl - (-pitch()); // baş yukarı -> pitch azalır
+  if(Math.abs(dAz)>FOVH+15||Math.abs(dEl)>FOVV+15)return null;
+  return {x:cx + (dAz/FOVH)*halfW, y:cy - (dEl/FOVV)*halfH, dAz,dEl};
+}
+// returns index of object under reticle (nearest to center within threshold)
+function renderStereo(objects,drawObj,opts){
+  opts=opts||{};
+  const eyeW=W/2, halfW=eyeW*0.5, halfH=H*0.5;
+  // background
+  ctx.fillStyle=opts.bg||'#050915'; ctx.fillRect(0,0,W,H);
+  let centeredIdx=-1, bestDist=1e9;
+  // find centered target (based on angle to center)
+  objects.forEach((o,i)=>{
+    if(o.dead)return;
+    const dAz=normDeg(o.az-yaw()), dEl=o.el-(-pitch());
+    const d=Math.hypot(dAz,dEl);
+    if(d<(o.hit||10)&&d<bestDist){bestDist=d;centeredIdx=i;}
+  });
+  for(let eye=0;eye<2;eye++){
+    const ox=eye*eyeW;
+    ctx.save();
+    ctx.beginPath();ctx.rect(ox,0,eyeW,H);ctx.clip();
+    const cx=ox+eyeW/2 + (eye===0?4:-4), cy=H/2; // ufak IPD
+    // horizon / floor hint
+    if(opts.horizon!==false){
+      const hy=cy - (-pitch()/FOVV)*halfH;
+      ctx.fillStyle=opts.floor||'#0a1330'; ctx.fillRect(ox,hy,eyeW,H-hy);
+      ctx.strokeStyle='rgba(120,140,220,.25)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(ox,hy);ctx.lineTo(ox+eyeW,hy);ctx.stroke();
+    }
+    // objects
+    objects.forEach((o,i)=>{
+      if(o.dead)return;
+      const p=project(o.az,o.el,cx,cy,halfW,halfH);
+      if(!p)return;
+      drawObj(o,p,i===centeredIdx,eyeW);
+    });
+    // reticle
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.globalAlpha=.85;
+    ctx.beginPath();ctx.arc(cx,cy,10,0,7);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,2.5,0,7);ctx.fillStyle='#fff';ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+  // divider
+  ctx.fillStyle='#000';ctx.fillRect(W/2-1,0,2,H);
+  return {centeredIdx};
+}
+
+/* ============================================================
+   TELEFON OYUNLARI (5)
+   ============================================================ */
+
+/* 1) İfade Aynası — ön kamera, mimik tutma */
+const G_mirror=(()=>{let target,timer,hold,score,idx,items;
+ const list=[['😀','Gülümse'],['😮','Şaşır (ağzını aç)'],['😗','Öpücük ver'],['😝','Dil çıkar'],['🙁','Kaşlarını çat'],['😲','Gözlerini kocaman aç']];
+ return {title:'İfade Aynası',needCamera:true,
+  help:'Ön kameraya bakın. Ekranda çıkan ifadeyi <b>abartılı</b> yapın ve hareket ölçülür. İfadeyi koruyun; çubuk dolunca puan kazanırsınız. Yüz kaslarını (maske yüz için) çalıştırır.',
+  pills:['Yüz / mimik','Ön kamera','Hipomimi'],
+  init(){score=0;idx=0;hold=0;newTarget();},
+  newTarget(){target=list[idx%list.length];idx++;hold=0;timer=6;},
+  update(dt){
+   const m=cameraMotion().level;
+   timer-=dt;
+   drawCameraMirror(W/2-140,120,280,210,18);
+   // hedef
+   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 26px sans-serif';
+   ctx.fillText('Yap: '+target[1],W/2,70);
+   ctx.font='64px sans-serif';ctx.fillText(target[0],W/2,H-150);
+   // aktivasyon çubuğu — kamera hareketi = ifade değişimi
+   const act=clamp(m*1.4,0,1);
+   if(act>0.28)hold+=dt; else hold=Math.max(0,hold-dt*0.5);
+   const need=2.0;
+   ctx.fillStyle='#22305f';roundRect(W/2-120,H-100,240,20,10);ctx.fill();
+   ctx.fillStyle=act>0.28?'#48bb78':'#f6ad55';roundRect(W/2-120,H-100,240*clamp(hold/need,0,1),20,10);ctx.fill();
+   ctx.fillStyle='#fff';ctx.font='13px sans-serif';
+   ctx.fillText('Kas hareketi: %'+Math.round(act*100),W/2,H-58);
+   if(hold>=need){score++;banner('✔ Güzel!');setTimeout(()=>banner(''),700);this.newTarget();}
+   if(timer<=0){this.newTarget();}
+   setHud('⭐ '+score+' &nbsp; ⏱ '+Math.max(0,timer).toFixed(0));
+  },cleanup(){}};
+})();
+
+/* 2) Kahve Taşıyıcı — jiroskop, düz tut */
+const G_coffee=(()=>{let x,goal,spill,score,t;
+ return {title:'Kahve Taşıyıcı',
+  help:'Telefonu <b>yatay ve düz</b> tutun (tepsi). Fincanı soldan sağa taşıyın; telefonu eğerseniz kahve taşar. Amaç: titremeden, sabit taşımak.',
+  pills:['El / kol stabilite','Jiroskop','Tremor'],
+  init(){x=0.1;goal=0.9;spill=0;score=0;t=0;recenter();},
+  update(dt){t+=dt;
+   const tilt=clamp(roll()/25,-1,1); // sağa-sola eğim
+   x+=(-tilt)*dt*0.35 + dt*0.06; // hafif otomatik ilerleme + eğimle kontrol
+   x=clamp(x,0,1);
+   const level=Math.abs(pitch())+Math.abs(roll()); // ne kadar düz?
+   if(level>14){spill=Math.min(100,spill+dt*20);} else {spill=Math.max(0,spill-dt*6);}
+   // masa
+   ctx.fillStyle='#12193a';ctx.fillRect(0,H*0.62,W,H*0.38);
+   ctx.fillStyle='#3a2a15';ctx.fillRect(0,H*0.62,W,10);
+   // hedef bölge
+   ctx.fillStyle='rgba(72,187,120,.25)';ctx.fillRect(W*0.86,H*0.5,W*0.14,H*0.12);
+   ctx.fillStyle='#48bb78';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('🎯',W*0.93,H*0.49);
+   // fincan
+   const px=W*(0.06+x*0.88), py=H*0.5, tiltPx=roll()*1.2;
+   ctx.save();ctx.translate(px,py);ctx.rotate(clamp(roll(),-25,25)*Math.PI/180);
+   ctx.fillStyle='#eee';roundRect(-22,-16,44,32,6);ctx.fill();
+   ctx.fillStyle='#5a3a1a';roundRect(-18,-12,36,10-spill*0.06,3);ctx.fill();
+   ctx.restore();
+   // taşma göstergesi
+   ctx.fillStyle='#22305f';roundRect(W/2-100,30,200,16,8);ctx.fill();
+   ctx.fillStyle=spill>60?'#f56565':'#f6ad55';roundRect(W/2-100,30,200*spill/100,16,8);ctx.fill();
+   ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText('Taşma',W/2,26);
+   if(x>=0.985&&spill<50){score++;banner('✔ Teslim edildi! Yeni fincan.');setTimeout(()=>banner(''),900);x=0.06;spill=0;}
+   setHud('☕ '+score+' &nbsp; Denge: '+(level<8?'👍':'⚠️'));
+  },cleanup(){}};
+})();
+
+/* 3) Market Listesi — jiroskop + hafıza (çift görev) */
+const G_market=(()=>{let list,collected,items,px,phase,memT,score;
+ const all=['🍎','🍞','🥛','🧀','🍌','🥕','🍇','🥚','🍅','🧅'];
+ return {title:'Market Listesi',
+  help:'Önce listeyi <b>ezberleyin</b>. Sonra telefonu sola-sağa eğerek sepeti hareket ettirin ve <b>sadece listedeki</b> ürünleri toplayın. Yanlış ürün puan kaybettirir. Hareket + hafıza birlikte çalışır.',
+  pills:['Çift görev','Jiroskop','Hafıza'],
+  init(){list=[];while(list.length<3){const x=pick(all);if(!list.includes(x))list.push(x);}
+    collected=[];score=0;phase='memo';memT=4;items=[];px=0.5;},
+  spawn(){items.push({x:rnd(0.1,0.9),y:-0.05,e:pick(all),v:rnd(0.12,0.2)});},
+  update(dt){
+   if(phase==='memo'){memT-=dt;
+    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 22px sans-serif';
+    ctx.fillText('Bunları hatırla:',W/2,H*0.35);
+    ctx.font='54px sans-serif';ctx.fillText(list.join('  '),W/2,H*0.5);
+    ctx.font='16px sans-serif';ctx.fillStyle='#9aa6d6';ctx.fillText(Math.ceil(memT)+' sn',W/2,H*0.62);
+    if(memT<=0){phase='play';this.t=0;}return;}
+   this.t=(this.t||0)+dt;
+   if(Math.random()<dt*1.1)this.spawn();
+   px=clamp(px + (roll()/22)*dt*1.6,0.08,0.92);
+   // basket
+   const bx=W*px, by=H-70;
+   ctx.font='40px sans-serif';ctx.textAlign='center';ctx.fillText('🧺',bx,by);
+   // list reminder
+   ctx.font='22px sans-serif';ctx.fillText(list.join(' '),W/2,40);
+   // items
+   for(const it of items){it.y+=it.v*dt;
+     ctx.font='34px sans-serif';ctx.fillText(it.e,W*it.x,H*it.y);
+     if(it.y>0.9&&it.y<1.0&&Math.abs(W*it.x-bx)<40&&!it.done){
+       it.done=true;
+       if(list.includes(it.e)){score+=10;banner('+10');}
+       else{score=Math.max(0,score-5);banner('−5 (listede yok!)');}
+       setTimeout(()=>banner(''),600);
+     }
+   }
+   items=items.filter(i=>i.y<1.1&&!i.done);
+   setHud('🛒 '+score);
+  },cleanup(){}};
+})();
+
+/* 4) Yıldız Yakalama — jiroskop imleç + reaksiyon */
+const G_star=(()=>{let cxp,cyp,star,score,life,rule;
+ return {title:'Yıldız Yakalama',
+  help:'Telefonu eğerek imleci yıldıza götürün ve yakalayın. <b>Sadece sarı</b> yıldızları yakalayın (çift görev). Hızlı, hedefe yönelik kol hareketi (bradikinezi) çalışır.',
+  pills:['El / kol','Reaksiyon','Jiroskop'],
+  init(){cxp=0.5;cyp=0.5;score=0;this.newStar();},
+  newStar(){star={x:rnd(0.15,0.85),y:rnd(0.2,0.8),yellow:Math.random()<0.65,life:3.2};},
+  update(dt){
+   cxp=clamp(cxp+(roll()/26)*dt*2.2,0.05,0.95);
+   cyp=clamp(cyp+(pitch()/26)*dt*2.2,0.08,0.92);
+   star.life-=dt;
+   // star
+   ctx.font='40px sans-serif';ctx.textAlign='center';
+   ctx.fillText(star.yellow?'⭐':'💫',W*star.x,H*star.y);
+   // cursor
+   ctx.strokeStyle='#4fd1c5';ctx.lineWidth=3;
+   ctx.beginPath();ctx.arc(W*cxp,H*cyp,18,0,7);ctx.stroke();
+   ctx.beginPath();ctx.arc(W*cxp,H*cyp,3,0,7);ctx.fillStyle='#4fd1c5';ctx.fill();
+   const d=Math.hypot(W*cxp-W*star.x,H*cyp-H*star.y);
+   if(d<32){
+     if(star.yellow){score+=10;banner('+10 ⭐');}else{score=Math.max(0,score-5);banner('−5 (sarı değil)');}
+     setTimeout(()=>banner(''),500);this.newStar();
+   } else if(star.life<=0){this.newStar();}
+   setHud('⭐ '+score);
+  },cleanup(){}};
+})();
+
+/* 5) Şarkı Söyleyen Yüz — kamera + mikrofon */
+const G_sing=(()=>{let lyrics,idx,t,score,lineT;
+ const lines=['Da-ğ-lar da-ğ-lar','A-aç ka-pı-yı','Gü-neş do-ğu-yor','Se-la-a-a-am','La-la-la-laa','Aç a-ğ-zı-nı geniş'];
+ return {title:'Şarkı Söyleyen Yüz',needCamera:true,needAudio:true,
+  help:'Ekrandaki heceleri <b>yüksek sesle ve ağzını geniş açarak</b> söyleyin. Kamera ağız hareketini, mikrofon ses gücünü ölçer. Kısık ses (hipofoni) ve yüz donukluğu için.',
+  pills:['Yüz + ses','Kamera + mikrofon','Hipofoni'],
+  init(){idx=0;score=0;lineT=4;this.line=lines[0];},
+  update(dt){
+   lineT-=dt;
+   drawCameraMirror(W/2-130,90,260,190,16);
+   const vol=micLevel(), mo=cameraMotion().level;
+   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 30px sans-serif';
+   ctx.fillText(this.line,W/2,H-160);
+   // ses çubuğu
+   ctx.fillStyle='#22305f';roundRect(60,H-120,W-120,18,9);ctx.fill();
+   ctx.fillStyle=vol>0.35?'#48bb78':'#f6ad55';roundRect(60,H-120,(W-120)*vol,18,9);ctx.fill();
+   ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText('🔊 Ses',W/2,H-128);
+   // ağız çubuğu
+   ctx.fillStyle='#22305f';roundRect(60,H-88,W-120,18,9);ctx.fill();
+   ctx.fillStyle=mo>0.3?'#48bb78':'#f6ad55';roundRect(60,H-88,(W-120)*clamp(mo*1.3,0,1),18,9);ctx.fill();
+   ctx.fillText('👄 Ağız',W/2,H-96);
+   if(vol>0.4&&mo>0.25){score+=Math.round(dt*20);}
+   if(lineT<=0){idx++;this.line=lines[idx%lines.length];lineT=4;banner('▶ Sıradaki');setTimeout(()=>banner(''),500);}
+   setHud('🎵 '+score);
+  },cleanup(){}};
+})();
+
+/* ============================================================
+   VR BOX OYUNLARI (5) — stereo + baş hareketi (gaze/dwell)
+   ============================================================ */
+
+/* 6) Yıldız Gökyüzü Rotası — boyun ROM, sıralı bakış */
+const V_sky=(()=>{let stars,next,score,dwell;
+ return {title:'Yıldız Gökyüzü Rotası',
+  help:'Başınızı çevirerek yıldızlara <b>sırayla</b> bakın; imleç yıldızın üstünde kalınca birleşir. Boyun ve gövde dönüşü (ROM) çalışır. Yavaş ve kontrollü hareket edin.',
+  pills:['Boyun ROM','Denge','Oturarak'],
+  init(){stars=[];const N=6;for(let i=0;i<N;i++)stars.push({az:rnd(-55,55),el:rnd(-22,22),dead:false});
+    next=0;score=0;dwell=0;this.path=[];},
+  update(dt){
+   const r=renderStereo(stars,(o,p,centered,eyeW)=>{
+     const active=(stars.indexOf(o)===next);
+     ctx.font=(active?'34px':'26px')+' sans-serif';ctx.textAlign='center';
+     ctx.globalAlpha=o.dead?1:(active?1:0.4);
+     ctx.fillText(o.dead?'⭐':(active?'✨':'·'),p.x,p.y);
+     ctx.globalAlpha=1;
+     if(active){ctx.strokeStyle='#4fd1c5';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,26,0,7);ctx.stroke();}
+   },{bg:'#02040f',horizon:false});
+   // dwell on the "next" star
+   if(r.centeredIdx===next && !stars[next].dead){dwell+=dt;}
+   else dwell=Math.max(0,dwell-dt*2);
+   if(dwell>1.0){stars[next].dead=true;score++;dwell=0;next++;banner('✔ '+score+'/'+stars.length);
+     setTimeout(()=>banner(''),600);
+     if(next>=stars.length){banner('🌟 Takımyıldız tamam! Yeni tur…');setTimeout(()=>{this.init();banner('');},1500);}
+   }
+   setHud('⭐ '+score+'/'+stars.length);
+   ctx.textAlign='center';ctx.fillStyle='#89f';ctx.font='12px sans-serif';
+  },cleanup(){}};
+})();
+
+/* 7) Sanal Market Yolu — yürüyüş, görsel ipucu (cueing) */
+const V_walk=(()=>{let steps,score,dist;
+ return {title:'Sanal Market Yolu',
+  help:'Koridorda ilerleyin. Yerdeki ritmik <b>çizgilere</b> bakarak adım atın (görsel ipucu adım uzunluğunu artırır). İleriye bakınca ilerlersiniz. <b>Ayakta ve destekli, gözetim altında oynayın.</b>',
+  pills:['Yürüyüş','Adım uzunluğu','Cueing'],
+  init(){score=0;dist=0;steps=[];for(let i=0;i<8;i++)steps.push({z:i*2+2});this.beat=0;},
+  update(dt){
+   // ileri bakış = ilerleme
+   const looking=Math.abs(yaw())<25 && pitch()<-5; // öne ve hafif aşağı
+   const speed=looking?1.4:0.15; dist+=speed*dt;
+   this.beat+=dt;
+   const eyeW=W/2;
+   ctx.fillStyle='#0a1030';ctx.fillRect(0,0,W,H);
+   for(let eye=0;eye<2;eye++){
+     const ox=eye*eyeW;ctx.save();ctx.beginPath();ctx.rect(ox,0,eyeW,H);ctx.clip();
+     const cx=ox+eyeW/2+(eye===0?4:-4);
+     const horizon=H*0.42 - (-pitch())/FOVV*(H*0.5);
+     // duvarlar
+     ctx.fillStyle='#141d44';ctx.fillRect(ox,horizon,eyeW,H-horizon);
+     ctx.fillStyle='#0c1230';ctx.fillRect(ox,0,eyeW,horizon);
+     // yön kayması (yaw)
+     const sway=(yaw()/FOVH)*eyeW*0.5;
+     // yerdeki çizgiler (cueing) — yaklaşan
+     for(const s of steps){
+       let z=s.z-(dist%2); if(z<=0)z+=8; // döngü
+       const t=1-z/8; // 0 uzak,1 yakın
+       const y=horizon+(H-horizon)*t*t;
+       const wln=eyeW*(0.15+t*0.7);
+       const flash=(Math.floor(dist)%2===0);
+       ctx.strokeStyle=`rgba(79,209,197,${0.3+t*0.6})`;ctx.lineWidth=2+t*5;
+       ctx.beginPath();ctx.moveTo(cx-sway-wln/2,y);ctx.lineTo(cx-sway+wln/2,y);ctx.stroke();
+     }
+     // hedef kapı
+     const gy=horizon-40, gw=eyeW*0.22;
+     ctx.fillStyle='#f6ad55';ctx.fillRect(cx-sway-gw/2,gy,gw,44);
+     ctx.fillStyle='#04241f';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('MARKET',cx-sway,gy+26);
+     // reticle
+     ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,H/2,8,0,7);ctx.stroke();
+     ctx.restore();
+   }
+   ctx.fillStyle='#000';ctx.fillRect(W/2-1,0,2,H);
+   // adım ritmi metronom
+   setHud('👣 '+dist.toFixed(1)+' m &nbsp;'+(looking?'▶ yürü':'⏸ ileri bak'));
+   if(dist>16){banner('🏁 Markete ulaştın! Yeni koridor…');setTimeout(()=>{dist=0;banner('');},1500);}
+  },cleanup(){}};
+})();
+
+/* 8) Balon Patlatma Ağı — ağırlık aktarımı / denge */
+const V_balloon=(()=>{let balloons,score,dwell,spawnT;
+ const cols=['#f56565','#4fd1c5','#f6ad55','#a78bfa','#48bb78'];
+ return {title:'Balon Patlatma Ağı',
+  help:'Gövdenizi ve başınızı eğerek (ağırlık aktarımı) balonlara uzanın; imleç balonda kalınca patlar. Denge sınırlarınızı <b>güvenle</b> zorlar. Oturarak veya destekli oynayın.',
+  pills:['Denge','Ağırlık aktarımı','Oturarak'],
+  init(){balloons=[];score=0;dwell=0;spawnT=0;for(let i=0;i<3;i++)this.spawn();},
+  spawn(){balloons.push({az:rnd(-50,50),el:rnd(-25,25),c:pick(cols),dead:false,rise:rnd(1,3)});},
+  update(dt){
+   spawnT+=dt;if(spawnT>1.6&&balloons.filter(b=>!b.dead).length<5){this.spawn();spawnT=0;}
+   for(const b of balloons){if(!b.dead)b.el+=b.rise*dt;}
+   const r=renderStereo(balloons,(o,p,centered)=>{
+     ctx.font='40px sans-serif';ctx.textAlign='center';
+     ctx.fillStyle=o.c;
+     // balon gövdesi
+     ctx.beginPath();ctx.ellipse(p.x,p.y,20,26,0,0,7);ctx.fill();
+     ctx.strokeStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.moveTo(p.x,p.y+26);ctx.lineTo(p.x,p.y+40);ctx.stroke();
+     if(centered){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,30,0,7);ctx.stroke();}
+   },{bg:'#071026',floor:'#0a1836'});
+   const ci=r.centeredIdx;
+   if(ci>=0&&!balloons[ci].dead){dwell+=dt;
+     if(dwell>0.8){balloons[ci].dead=true;score++;dwell=0;banner('💥 +1');setTimeout(()=>banner(''),400);}
+   } else dwell=Math.max(0,dwell-dt*2);
+   balloons=balloons.filter(b=>!b.dead&&b.el<40);
+   setHud('🎈 '+score);
+  },cleanup(){}};
+})();
+
+/* 9) Mutfak Şefi — çift görev + sıralama */
+const V_kitchen=(()=>{let objs,recipe,step,score,dwell;
+ const R=[['🍅','Domates'],['🧅','Soğan'],['🥕','Havuç'],['🧀','Peynir'],['🥚','Yumurta'],['🍞','Ekmek']];
+ return {title:'Mutfak Şefi',
+  help:'Tarif sırasına göre <b>doğru malzemeye</b> başınızla bakın. Aynı anda hareket + hafıza + sıralama (çift görev) çalışır. Günlük yaşam becerisi (yemek yapma) taklidi.',
+  pills:['Çift görev','Sıralama','Oturarak'],
+  init(){objs=R.map((x,i)=>({az:-55+i*22,el:rnd(-12,12),e:x[0],name:x[1]}));
+    recipe=[];const idxs=[0,1,2,3,4,5].sort(()=>Math.random()-0.5).slice(0,3);recipe=idxs;
+    step=0;score=0;dwell=0;},
+  update(dt){
+   const need=recipe[step];
+   const r=renderStereo(objs,(o,p,centered)=>{
+     const i=objs.indexOf(o);
+     ctx.font='38px sans-serif';ctx.textAlign='center';
+     ctx.globalAlpha=1;ctx.fillText(o.e,p.x,p.y);
+     ctx.fillStyle='#cdd';ctx.font='12px sans-serif';ctx.fillText(o.name,p.x,p.y+26);
+     if(centered){ctx.strokeStyle='#4fd1c5';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y-8,30,0,7);ctx.stroke();}
+   },{bg:'#0b1020',floor:'#141d44'});
+   // tarif başlığı (her iki gözde üstte)
+   for(let eye=0;eye<2;eye++){const ox=eye*(W/2)+W/4;
+     ctx.textAlign='center';ctx.fillStyle='#f6ad55';ctx.font='700 15px sans-serif';
+     ctx.fillText('Şimdi: '+R[need][1]+' '+R[need][0],ox,40);}
+   const ci=r.centeredIdx;
+   if(ci===need){dwell+=dt;
+     if(dwell>0.9){score++;step++;dwell=0;banner('✔ Doğru!');setTimeout(()=>banner(''),500);
+       if(step>=recipe.length){banner('🍲 Yemek hazır! Yeni tarif…');setTimeout(()=>{this.init();banner('');},1600);}
+     }
+   } else if(ci>=0){ if(dwell>0)banner('✗ sıradaki bu değil'); dwell=0; }
+   else dwell=0;
+   setHud('👨‍🍳 '+score+' &nbsp; Adım '+(step+1)+'/'+recipe.length);
+  },cleanup(){}};
+})();
+
+/* 10) Huzurlu Orman — nazik takip + nefes */
+const V_forest=(()=>{let bug,t,breath;
+ return {title:'Huzurlu Orman Yürüyüşü',
+  help:'Kelebeği başınızla <b>yavaşça</b> takip edin. Ekrandaki daire ile nefes alıp verin (büyürken al, küçülürken ver). Isınma/soğuma ve rahatlama seansı; egzersiz devamlılığını destekler.',
+  pills:['Rahatlama','Nazik mobilite','Oturarak'],
+  init(){bug={az:0,el:0};t=0;breath=0;},
+  update(dt){t+=dt;breath+=dt;
+   bug.az=Math.sin(t*0.4)*40; bug.el=Math.sin(t*0.28)*18;
+   const objs=[{az:bug.az,el:bug.el,dead:false}];
+   const r=renderStereo(objs,(o,p,centered)=>{
+     ctx.font='38px sans-serif';ctx.textAlign='center';ctx.fillText('🦋',p.x,p.y);
+     if(centered){ctx.strokeStyle='rgba(120,220,160,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,30,0,7);ctx.stroke();}
+   },{bg:'#06170f',floor:'#0c2418'});
+   // nefes dairesi (her göz)
+   const cyc=(Math.sin(breath*0.5)+1)/2; // 0..1
+   for(let eye=0;eye<2;eye++){const ox=eye*(W/2)+W/4;
+     ctx.strokeStyle='rgba(160,240,190,.6)';ctx.lineWidth=3;
+     ctx.beginPath();ctx.arc(ox,H-70,18+cyc*30,0,7);ctx.stroke();
+     ctx.fillStyle='#bfe';ctx.font='13px sans-serif';ctx.textAlign='center';
+     ctx.fillText(cyc>0.5?'Nefes AL':'Nefes VER',ox,H-30);}
+   setHud('🌿 Rahatla');
+  },cleanup(){}};
+})();
+
+/* ============================================================
+   MENU DATA
+   ============================================================ */
+const GAMES={
+ phone:[
+  {icon:'😀',g:G_mirror,tag:'Yüz / mimik'},
+  {icon:'☕',g:G_coffee,tag:'El stabilite'},
+  {icon:'🛒',g:G_market,tag:'Çift görev'},
+  {icon:'⭐',g:G_star,tag:'El / reaksiyon'},
+  {icon:'🎵',g:G_sing,tag:'Ses + yüz'},
+ ],
+ vr:[
+  {icon:'🌟',g:V_sky,tag:'Boyun ROM'},
+  {icon:'🚶',g:V_walk,tag:'Yürüyüş'},
+  {icon:'🎈',g:V_balloon,tag:'Denge'},
+  {icon:'👨‍🍳',g:V_kitchen,tag:'Çift görev'},
+  {icon:'🦋',g:V_forest,tag:'Rahatlama'},
+ ]
+};
+function chooseMode(m){
+  MODE=m;
+  $('#menuTitle').textContent = m==='vr'?'🥽 VR Box Oyunları':'📱 Telefon Oyunları';
+  $('#menuSub').innerHTML = m==='vr'
+    ? 'Telefonu VR gözlüğe yerleştirin, başınızla imleci hedefe getirin ve <b>sabit bakın</b> (dwell) — hedef seçilir. Oturarak/destekli oynayın.'
+    : 'Telefonu elinizde tutun. Jiroskop (eğme) ve ön kamera kullanılır.';
+  const grid=$('#gameGrid');grid.innerHTML='';
+  GAMES[m].forEach((it,i)=>{
+    const d=document.createElement('div');d.className='gcard';
+    d.innerHTML=`<div class="gt">${it.icon} ${i+1}. ${it.g.title}</div>
+      <div class="gd">${it.g.help.replace(/<[^>]+>/g,'')}</div>
+      <span class="tag">${it.tag}</span>`;
+    d.onclick=()=>launch(it.g);
+    grid.appendChild(d);
+  });
+  show('menu');
+}
+resize();
+</script>
+</body>
+</html>
